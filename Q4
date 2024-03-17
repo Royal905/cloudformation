@@ -1,0 +1,31 @@
+import boto3
+
+def list_services(region):
+    """List AWS services being used in the specified region."""
+    session = boto3.Session(region_name=region)
+    services = session.get_available_services()
+    return services
+
+def describe_service(service, region):
+    """Describe a specific AWS service in detail."""
+    session = boto3.Session(region_name=region)
+    client = session.client(service)
+    description = client.describe_service()
+    return description
+
+def main():
+    regions = ['us-east-1', 'us-west-1', 'eu-west-1']  # Add Regions that we want to count
+    for region in regions:
+        print(f"Region: {region}")
+        services = list_services(region)
+        print("Services:")
+        for service in services:
+            print(f"- {service}")
+            service_details = describe_service(service, region)
+            print("  Details:")
+            print(service_details)  # Adding Services that we want to Print
+            print("\n")
+
+if __name__ == "__main__":
+    main()
+

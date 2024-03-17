@@ -1,0 +1,65 @@
+---
+- name: Provision and configure web server
+  hosts: localhost
+  gather_facts: no
+  vars:
+    web_server: "apache2"  # Web server name
+
+  tasks:
+    - name: Pick a Linux AMI (Ubuntu)
+      debug:
+        msg: "Picking Ubuntu VM"
+
+    - name: Install web server (Apache)
+      apt:
+        name: "{{ web_server }}"
+        state: present
+      become: yes
+
+    - name: Download code from git
+      git:
+        repo: https://gist.github.com/5512607.git
+        dest: /var/www/html  # Path to store downloaded code
+      become: yes
+
+    - name: Configure web server with security best practices
+      copy:
+        src: "security_config.conf" 
+        dest: "/etc/apache2/conf-available/security.conf"
+      become: yes
+
+    - name: Enable security configuration
+      command: "a2enconf security"
+      become: yes
+
+    - name: Create a self-signed certificate
+      openssl_certificate:
+        path: "/etc/ssl/certs/defaultsssl.crt"
+        privatekey_path: "/etc/ssl/private/defaultsssl.key"
+        common_name: "defaultsssl.com"
+        state: present
+      become: yes
+
+    - name: Secure a demo site using self-signed certificate
+      copy:
+        content: |
+          <VirtualHost *:443>
+              ServerName localhost
+              DocumentRoot /var/www/html
+              SSLEngine on
+              SSLCertificateFile /etc/ssl/certs/defaultsssl.crt
+              SSLCertificateKeyFile /etc/ssl/private/defaultsssl.key
+          </VirtualHost>
+        dest: "/etc/apache2/sites-available/default-ssl.conf"
+      become: yes
+
+    - name: Enable demo site configuration
+      command: "a2ensite apache2"
+      become: yes
+
+    - name: Restart Apache service
+      service:
+        name: apache2
+        state: restarted
+      become: yes
+
